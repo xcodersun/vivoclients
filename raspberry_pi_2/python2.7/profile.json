@@ -1,0 +1,10 @@
+{
+  "host": "192.168.31.132",
+  "port": "8081",
+  "channel": "dNPbBY7op5zxqLen",
+  "device": "raspberrypi",
+  "tags": {
+    "room": "guest",
+    "floor": "1st"
+  }
+}
