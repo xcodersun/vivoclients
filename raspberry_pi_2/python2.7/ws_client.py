@@ -7,8 +7,33 @@ import time
 import json
 from subprocess import check_output
 
+def proc_send_msg(ws, msg_id, msg_body):
+    print "Nothing to do with \"" + msg_body + "\""
+
+def proc_request_msg(ws, msg_id, msg_body):
+    def run():
+        # Construct message type
+        msg_type = "4"
+        # Construct message
+        msg = msg_type + "|" + msg_id + "|" + msg_body
+        ws.send(msg)
+        print "respond: " + msg
+
+    thread.start_new_thread(run, ())
+
 def on_message(ws, message):
     print message
+    msg = message.split('|', 3)
+    msg_type = msg[0]
+    msg_id = msg[1]
+    msg_body = msg[2]
+
+    if msg_type == "3":
+        proc_send_msg(ws, msg_id, msg_body)
+    elif msg_type == "2":
+        proc_request_msg(ws, msg_id, msg_body)
+    else:
+        print "Ivalid Message"
 
 def on_error(ws, error):
     print error
@@ -35,8 +60,8 @@ def on_open(ws):
             msg = msg_type + "|" + msg_id + "|" + msg_body
 
             print "send: " + msg
-            #ws.send(msg)
-            time.sleep(300)
+            ws.send(msg)
+            time.sleep(10)
         ws.close()
         print("Thread terminating...")
 
@@ -65,4 +90,4 @@ if __name__ == "__main__":
                               on_open = on_open,
                               on_pong = on_pong,
                               header = {'AccessToken:1234abcd'})
-    ws.run_forever(ping_interval=60)
+    ws.run_forever(ping_interval=120)
