@@ -3,12 +3,13 @@
 import websocket
 import thread
 import time
+import logging
 
 import json
 from subprocess import check_output
 
 def proc_send_msg(ws, msg_id, msg_body):
-    print "Nothing to do with \"" + msg_body + "\""
+    logging.debug("Nothing to do with \"" + msg_body + "\"")
 
 def proc_request_msg(ws, msg_id, msg_body):
     def run():
@@ -17,7 +18,7 @@ def proc_request_msg(ws, msg_id, msg_body):
         # Construct message
         msg = msg_type + "|" + msg_id + "|" + msg_body
         ws.send(msg)
-        print "respond: " + msg
+        logging.info("responded: " + msg)
 
     thread.start_new_thread(run, ())
 
@@ -33,16 +34,16 @@ def on_message(ws, message):
     elif msg_type == "2":
         proc_request_msg(ws, msg_id, msg_body)
     else:
-        print "Ivalid Message"
+        logging.warning("Ivalid Message")
 
 def on_error(ws, error):
-    print error
+    logging.error(error)
 
 def on_close(ws):
-    print "### closed ###"
+    logging.info("### closed ###")
 
 def on_pong(ws, pong_message):
-    print "pong: " + pong_message
+    logging.debug("pong: " + pong_message)
 
 def on_open(ws):
     def run():
@@ -59,19 +60,23 @@ def on_open(ws):
             # Construct message
             msg = msg_type + "|" + msg_id + "|" + msg_body
 
-            print "send: " + msg
+            logging.info("sent: " + msg)
             ws.send(msg)
             time.sleep(10)
         ws.close()
-        print("Thread terminating...")
+        logging.info("Thread terminating...")
 
     thread.start_new_thread(run, ())
 
 if __name__ == "__main__":
     # For debug purpose
-    #websocket.enableTrace(True)
+    # websocket.enableTrace(True)
     with open('profile.json') as profile_file:
         profile = json.load(profile_file)
+    with open('config.json') as conf_file:
+        conf = json.load(conf_file)
+
+    logging.basicConfig(filename=conf["log_file"], format='%(asctime)s %(levelname)s:%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
 
     # Construct url without tags
     url = "ws://" + profile["host"] + ":" + profile["port"] + "/channels/" + profile["channel"] + \
@@ -82,6 +87,7 @@ if __name__ == "__main__":
         for key, value in profile["tags"].items():
             url += key + "=" + value + "&"
     url = url.rstrip('&')
+    accessToken = "AccessToken:" + profile["access_token"]
 
     ws = websocket.WebSocketApp(url,
                               on_message = on_message,
@@ -89,5 +95,5 @@ if __name__ == "__main__":
                               on_close = on_close,
                               on_open = on_open,
                               on_pong = on_pong,
-                              header = {'AccessToken:1234abcd'})
+                              header = {accessToken})
     ws.run_forever(ping_interval=120)

@@ -1,10 +1,11 @@
 {
-  "host": "192.168.31.132",
+  "host": "35.163.221.218",
   "port": "8081",
-  "channel": "Z4EJ2m5OQ9WvYGzr",
+  "channel": "GDE3N17PA5gXAlVj",
   "device": "raspberrypi",
   "tags": {
     "room": "guest",
     "floor": "1st"
-  }
+  },
+  "access_token": "abc123"
 }
