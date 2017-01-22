@@ -4,6 +4,7 @@ import websocket
 import thread
 import time
 import logging
+import sys, getopt
 
 import json
 from subprocess import check_output
@@ -62,21 +63,38 @@ def on_open(ws):
 
             logging.info("sent: " + msg)
             ws.send(msg)
-            time.sleep(10)
+            time.sleep(interval)
         ws.close()
         logging.info("Thread terminating...")
 
     thread.start_new_thread(run, ())
 
 if __name__ == "__main__":
+    global interval
     # For debug purpose
     # websocket.enableTrace(True)
-    with open('profile.json') as profile_file:
+    pf = ''
+    cf = ''
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hp:c:", ["profile=", "conf="])
+    except getopt.GetoptError:
+        print 'ws_client.py -p <profile.json> -c <config.json>'
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print 'ws_client.py -p <profile.json> -c <config.json>'
+        elif opt in ("-p", "--profile"):
+            pf = arg
+        elif opt in ("-c", "--conf"):
+            cf = arg
+
+    with open(pf) as profile_file:
         profile = json.load(profile_file)
-    with open('config.json') as conf_file:
+    with open(cf) as conf_file:
         conf = json.load(conf_file)
 
     logging.basicConfig(filename=conf["log_file"], format='%(asctime)s %(levelname)s:%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
+    interval = conf["interval"];
 
     # Construct url without tags
     url = "ws://" + profile["host"] + ":" + profile["port"] + "/channels/" + profile["channel"] + \
