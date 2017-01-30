@@ -5,9 +5,38 @@ import thread
 import time
 import logging
 import sys, getopt
+import psutil
 
 import json
-from subprocess import check_output
+from subprocess import Popen, PIPE
+
+def get_cpu_temperature():
+    process = Popen(['vcgencmd', 'measure_temp'], stdout=PIPE)
+    output, _error = process.communicate()
+    return output.replace("temp=", "")[0:4]
+
+def get_cpu_usage():
+    return psutil.cpu_percent()
+
+def get_memory_usage():
+    return psutil.virtual_memory().percent
+
+def get_disk_usage():
+    return psutil.disk_usage('/').percent
+
+def get_network_speed(last_tot, interval, t0):
+    counter = psutil.net_io_counters(pernic=True)['wlan0']
+    t1 = time.time()
+    tot = (counter.bytes_sent, counter.bytes_recv)
+    ul, dl = [(now - last) / (t1 - t0) for now, last in zip(tot, last_tot)]
+    t0 = time.time()
+    return ul, dl, tot, t0
+
+def msg_body_add_field(msg_body, field, value):
+    if msg_body != "":
+        msg_body += ","
+    msg_body += "\"" + field + "\":" + value
+    return msg_body
 
 def proc_send_msg(ws, msg_id, msg_body):
     logging.debug("Nothing to do with \"" + msg_body + "\"")
@@ -24,7 +53,7 @@ def proc_request_msg(ws, msg_id, msg_body):
     thread.start_new_thread(run, ())
 
 def on_message(ws, message):
-    print message
+    logging.info(message)
     msg = message.split('|', 3)
     msg_type = msg[0]
     msg_id = msg[1]
@@ -48,22 +77,39 @@ def on_pong(ws, pong_message):
 
 def on_open(ws):
     def run():
+        t0 = time.time()
+        counter = psutil.net_io_counters(pernic=True)['wlan0']
+        tot = (counter.bytes_sent, counter.bytes_recv)
+
         while True:
+            time.sleep(interval)
             # Get temperature on Raspberry Pi
-            temperature = check_output(["/opt/vc/bin/vcgencmd", "measure_temp"]).replace("temp=", "")[0:4]
+            upload, download, tot, t0 = get_network_speed(tot, interval, t0)
+            cpu_temp = get_cpu_temperature()
+            cpu_usage = get_cpu_usage()
+            memory_usage = get_memory_usage()
+            disk_usage = get_disk_usage()
 
             # Construct message type
             msg_type = "1"
             # Construct message ID
             msg_id = str(round(time.time())).rstrip('0').rstrip('.')
+
             # Construct message body
-            msg_body = "{\"temperature\":" + temperature + "}"
+            msg_body = ""
+            msg_body = msg_body_add_field(msg_body, "cpu_temperature", cpu_temp)
+            msg_body = msg_body_add_field(msg_body, "cpu_usage", "%0.2f" % cpu_usage)
+            msg_body = msg_body_add_field(msg_body, "memory_usage", "%0.2f" % memory_usage)
+            msg_body = msg_body_add_field(msg_body, "disk_usage", "%0.2f" % disk_usage)
+            msg_body = msg_body_add_field(msg_body, "upload_speed", "%d" % upload)
+            msg_body = msg_body_add_field(msg_body, "download_speed", "%d" % download)
+            msg_body = "{" + msg_body + "}"
+
             # Construct message
             msg = msg_type + "|" + msg_id + "|" + msg_body
 
             logging.info("sent: " + msg)
             ws.send(msg)
-            time.sleep(interval)
         ws.close()
         logging.info("Thread terminating...")
 
