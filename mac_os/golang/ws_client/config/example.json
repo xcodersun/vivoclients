@@ -1,0 +1,12 @@
+{
+  "host": "localhost",
+  "port": "8081",
+  "channel": "dNPbBY7op5zxqLen",
+  "device": "mactest1",
+  "tags": {
+    "room": "garage",
+    "floor": "1st"
+  },
+  "access_token": "1234abcd",
+  "interval": 10
+}
