@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"flag"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,13 +25,21 @@ type Config struct {
 	Interval    int                `json:"interval"`
 }
 
+var cfg = flag.String("config", "", "config file")
+
 func main() {
 	log.SetFlags(0)
+	flag.Parse()
+
+	if len(*cfg) == 0 {
+		log.Println("Please choose a config file")
+		os.Exit(1)
+	}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	config := getConfig()
+	config := getConfig(*cfg)
 	url := getUrl(&config)
 	log.Printf("connecting to %s", url)
 
@@ -111,8 +120,8 @@ func main() {
 	}
 }
 
-func getConfig() Config {
-	raw, err := ioutil.ReadFile("./config/example.json")
+func getConfig(cfg string) Config {
+	raw, err := ioutil.ReadFile(cfg)
 	if err != nil {
 		log.Println(err.Error())
 		os.Exit(1)
