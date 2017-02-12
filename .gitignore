@@ -1,1 +1,5 @@
 mac_os/golang/ws_client/ws_client
+
+# ignore every config files except example
+mac_os/golang/ws_client/config/*
+!mac_os/golang/ws_client/config/example.json
