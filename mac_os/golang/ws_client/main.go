@@ -8,8 +8,10 @@ import (
 	"time"
 	"io/ioutil"
 	"encoding/json"
-	"github.com/gorilla/websocket"
 	"fmt"
+	"math/rand"
+	"strconv"
+	"github.com/gorilla/websocket"
 )
 
 type Config struct {
@@ -76,7 +78,22 @@ func main() {
 				return
 			}
 		case <-ticker2.C:
-			log.Println("ticker2")
+			// Construct message type
+			msg_type := "1"
+			// Construct message ID
+			msg_id := strconv.FormatInt(time.Now().Unix(), 10)
+			// Construct message body
+			msg_body := "\"brightness\":" + fmt.Sprintf("%.2f", (rand.Float64() * 5 + 25))
+			msg_body = "{" + msg_body + "}"
+			// Construct message
+			msg := msg_type + "|" + msg_id + "|" + msg_body
+
+			log.Println("send: ", msg)
+			err := ws.WriteMessage(websocket.TextMessage, []byte(msg))
+			if err != nil {
+				log.Println("write:", err)
+				return
+			}
 		case <-interrupt:
 			log.Println("interrupt")
 			err := ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
